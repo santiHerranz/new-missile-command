@@ -1,9 +1,9 @@
 
 class Missile {
 
-    constructor(pos,target, speed) {
+    constructor(pos, target, speed) {
 
-        this.radius = 2;
+        this.radius = 3;
         this.speed = speed;
 
         this.originX = pos.x;
@@ -15,16 +15,18 @@ class Missile {
         this.targetX = target.x;
         this.targetY = target.y;
 
+        this.angle = -Math.atan2(this.originX -this.targetX, this.originY - this.targetY) - Math.PI/2;
+
         this.live = Missile.LIVE;
     }
 
 
     step(dt) {
 
-        var angle = -Math.atan2(this.originX -this.targetX, this.originY - this.targetY) - Math.PI/2;
 
-        this.x += dt*this.speed * Math.cos(angle);
-        this.y += dt*this.speed * Math.sin(angle);
+        this.x += dt*this.speed * Math.cos(this.angle);
+        this.y += dt*this.speed * Math.sin(this.angle);
+
 
         var dx = this.targetX - this.x;
         var dy = this.targetY - this.y;
@@ -48,10 +50,10 @@ class Missile {
 
         ctx.beginPath();
         ctx.strokeStyle = 'gray';
-        ctx.fillStyle = 'lightgray';
+        ctx.fillStyle = 'yellow';
         ctx.arc(this.x,this.y,this.radius,2*Math.PI,false);
         ctx.fill();
-        ctx.stroke();
+        // ctx.stroke();
 
         let crossSize = 5;
 

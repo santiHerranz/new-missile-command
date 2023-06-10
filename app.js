@@ -24,7 +24,7 @@ var game = {
     version: 0.2,
     status:GAME_RUNNING,
     level:GAME_LEVEL_INIT,
-    mode: GAME_MODE_MANUAL
+    mode: GAME_MODE_AUTO
 };
 
 var conf = {
@@ -80,7 +80,7 @@ function init() {
     ctx = canvas.getContext("2d");
 
     targetArea.top = height*2/8;
-    targetArea.bottom = height*7/8;
+    targetArea.bottom = height*5/8;
 
 
 	cities = [];
@@ -125,6 +125,7 @@ function initLevel(level) {
         levelSpeed = levelSpeed + levelSpeed*(Math.random()-0.5)
 
         if (levelSpeed > conf.ASTEROID_SPEED_MAX) levelSpeed = conf.ASTEROID_SPEED_MAX;
+        if (levelSpeed < conf.ASTEROID_SPEED) levelSpeed = conf.ASTEROID_SPEED;
 
         var asteroid = new Asteroid( origin, dest, levelSpeed);
 
@@ -165,6 +166,14 @@ function loop() {
 function step(dt) {
 
     game.dt = dt;
+
+
+    // clear dead objects
+    asteroids = asteroids.filter(asteroid => asteroid.live > 0);
+    missiles = missiles.filter(missile => missile.live > 0);
+    explosions = explosions.filter(explosion => explosion.live > 0);
+    // cities = cities.filter(city => city.live > 0);
+        
 
     cadence += dt;
     if ((asteroids.length == 0 || cadence > CADENCE_TIME*10/game.level) &&  asteroidsWave.length>0) {
@@ -229,14 +238,10 @@ function step(dt) {
 		});
 	});    
 
-    // clear dead objects
-    asteroids = asteroids.filter(asteroid => asteroid.live > 0);
-    missiles = missiles.filter(missile => missile.live > 0);
-    explosions = explosions.filter(explosion => explosion.live > 0);
-    // cities = cities.filter(city => city.live > 0);
 
 
-    // Game ove when no cities are alive
+
+    // Game over when no cities are alive
 	if(cities.filter(city => city instanceof Tower == false && city.live>0).length==0) {
 
         var towers = cities.filter(city => city instanceof Tower && city.live > 0 );
@@ -275,11 +280,12 @@ function step(dt) {
 
         if (missiles.length == 0) targetIds = [];
 
-        var towers = cities.filter(city => city instanceof Tower && city.live > 0 && city.isReady());
+        var towers = cities.filter(city => city instanceof Tower && city.live > 0 );
 
         for(var j=0; j< towers.length; j++) {
 
             var tower = towers[j];
+
 
             // Order asteroids by distance from this tower
 
@@ -290,7 +296,15 @@ function step(dt) {
                 var target = asteroids[i];
                 var targetId = getAsteroidId(target);
 
+                if (i==0) {
+                    tower.headingTarget = -Math.atan2(tower.x - target.x, tower.y - target.y) + Math.PI/4 +Math.PI;
+                }
+
+                // if (! tower.isReady()) continue
+
                 if (targetIds.filter( t => targetId == t).length == 1) continue;
+
+                
 
 
                 if (missiles.length < 100) { // asteroids.length
@@ -322,7 +336,7 @@ function step(dt) {
 
                             targetFocus.push(new Focus(tower, targetId, target.x, target.y, target.vx, target.vy));
 
-                        }
+                        } 
 
                     }
 
@@ -342,21 +356,31 @@ function step(dt) {
 function draw(ctx) {
 
     // clear canvas
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-    ctx.fillRect(0,0,width,height);
-    ctx.stroke();
+    // ctx.fillStyle = 'rgba(10, 10, 10, 0.1)';
+    // ctx.fillRect(0,0,width,height);
+    // // ctx.stroke();
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.setLineDash([]);
     ctx.lineWidth = 2;
 
+
+    // Ground
     ctx.fillStyle = 'rgba(120, 80, 20, 0.5)';
     ctx.fillRect(0,height*9/10,width,5);
     ctx.stroke();    
 
 
     if (game.mode == GAME_MODE_AUTO) {
-        ctx.fillStyle = 'rgba(2, 2, 2, 0.1)';
-        ctx.fillRect(0,targetArea.top,width,targetArea.bottom-targetArea.top);
+        ctx.strokeStyle = 'rgba(50, 50, 50, 0.1)';
+//        ctx.fillRect(0,targetArea.top,width,targetArea.bottom-targetArea.top);
+        ctx.moveTo(0, targetArea.bottom);
+        ctx.lineTo(width, targetArea.bottom);
+        ctx.moveTo(0, targetArea.top);
+        ctx.lineTo(width, targetArea.top);
+        ctx.stroke();
+
         ctx.stroke();    
     }
 
