@@ -8,4 +8,6 @@ Check the auto firing in pause menu.
 ![imagen](https://user-images.githubusercontent.com/961911/110108706-cbaea780-7dac-11eb-9feb-7edbfd19af5e.png)
 
 
-
+Why do meteor trails disappear?
+- Apart from the falling meteorites, horizontally moving powerups should appear
+- Auto mode should be temporary when hitting a powerup
