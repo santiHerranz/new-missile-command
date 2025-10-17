@@ -98,7 +98,8 @@ export class StorageManager {
             soundEnabled: true,
             showFPS: false,
             autoMode: true,
-            particleEffects: true
+            particleEffects: true,
+            debugIntercept: false
         };
     }
 

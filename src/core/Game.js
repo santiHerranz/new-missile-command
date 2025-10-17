@@ -58,6 +58,7 @@ export class Game {
             ASTEROID_SPEED: PHYSICS_CONFIG.ASTEROID_SPEED,
             ASTEROID_SPEED_MAX: PHYSICS_CONFIG.ASTEROID_SPEED_MAX,
             MISSILE_SPEED: PHYSICS_CONFIG.MISSILE_SPEED,
+            EXPLOSION_LEAD_DISTANCE: PHYSICS_CONFIG.EXPLOSION_LEAD_DISTANCE,
             SCORE_BASE: GAME_CONFIG.SCORE_BASE
         };
 
@@ -170,6 +171,7 @@ export class Game {
         this.asteroidsWave = [];
         this.targetFocus = [];
         this.targetIds = [];
+        this.debugIntercepts = [];
 
         // Create cities and defense towers
         this.cities.push(new Tower({ x: this.width * 1 / 10, y: this.height * 9 / 10 }, 1000));
@@ -258,10 +260,49 @@ export class Game {
 
         if (tower != null) {
             console.log('Tower found:', tower); // Debug log
+
+            // Determine if click is targeting a nearby asteroid
+            let closest = null;
+            let minD = Infinity;
+            for (let k = 0; k < this.asteroids.length; k++) {
+                const a = this.asteroids[k];
+                const d = getDist({ x: playerDestX, y: playerDestY }, a);
+                if (d < minD) { minD = d; closest = a; }
+            }
+
+            let finalTarget = { x: playerDestX, y: playerDestY };
+
+            // If click is close to an asteroid, compute intercept lead
+            const CLICK_TARGET_RADIUS = 40;
+            if (closest && minD <= CLICK_TARGET_RADIUS) {
+                const pos = intercept(
+                    { x: tower.x, y: tower.y },
+                    { x: closest.x, y: closest.y, vx: closest.vx, vy: closest.vy },
+                    this.conf.MISSILE_SPEED * this.game.dt
+                );
+                if (pos) {
+                    const explosionDist = this.conf.EXPLOSION_LEAD_DISTANCE;
+                    finalTarget = {
+                        x: pos.x + explosionDist * Math.cos(closest.angle),
+                        y: pos.y + explosionDist * Math.sin(closest.angle)
+                    };
+
+                    // Aim the tower visually towards the computed intercept
+                    tower.headingTarget = -Math.atan2(tower.x - finalTarget.x, tower.y - finalTarget.y) + Math.PI / 4 + Math.PI;
+
+                    // Debug overlay markers
+                    if (this.settingsPanel.getSettings().debugIntercept) {
+                        this.debugIntercepts.push({ kind: 'point', x: pos.x, y: pos.y, color: 'cyan' });
+                        this.debugIntercepts.push({ kind: 'point', x: finalTarget.x, y: finalTarget.y, color: 'yellow' });
+                        this.debugIntercepts.push({ kind: 'line', x1: tower.x, y1: tower.y, x2: finalTarget.x, y2: finalTarget.y, color: 'gray' });
+                    }
+                }
+            }
+
             tower.shot();
             const missile = new Missile(
                 { x: tower.x, y: tower.y },
-                { x: playerDestX, y: playerDestY },
+                finalTarget,
                 this.conf.MISSILE_SPEED
             );
             this.missiles.push(missile);
@@ -481,12 +522,8 @@ export class Game {
             const sortedAsteroids = sortByDistance(tower, this.asteroids);
 
             for (let i = 0; i < sortedAsteroids.length; i++) {
-                const target = this.asteroids[i];
+                const target = sortedAsteroids[i];
                 const targetId = this.getAsteroidId(target);
-
-                if (i === 0) {
-                    tower.headingTarget = -Math.atan2(tower.x - target.x, tower.y - target.y) + Math.PI / 4 + Math.PI;
-                }
 
                 if (this.targetIds.filter(t => targetId === t).length === 1) continue;
 
@@ -497,14 +534,32 @@ export class Game {
                         this.conf.MISSILE_SPEED * this.game.dt
                     );
 
-                    if (pos == null) continue;
+                    if (pos == null) {
+                        // If we cannot compute an intercept, at least aim at current target
+                        if (i === 0) {
+                            tower.headingTarget = -Math.atan2(tower.x - target.x, tower.y - target.y) + Math.PI / 4 + Math.PI;
+                        }
+                        continue;
+                    }
 
-                    // Add explosion distance
-                    const explosionDist = 80;
+                    // Add explosion distance along target direction to compensate for blast radius
+                    const explosionDist = this.conf.EXPLOSION_LEAD_DISTANCE;
                     const adjustedPos = {
                         x: pos.x + explosionDist * Math.cos(target.angle),
                         y: pos.y + explosionDist * Math.sin(target.angle)
                     };
+
+                    // Update tower aiming line to point to the intercept (first target only)
+                    if (i === 0) {
+                        tower.headingTarget = -Math.atan2(tower.x - adjustedPos.x, tower.y - adjustedPos.y) + Math.PI / 4 + Math.PI;
+                    }
+
+                    // Debug overlay markers for auto targeting
+                    if (this.settingsPanel.getSettings().debugIntercept) {
+                        this.debugIntercepts.push({ kind: 'point', x: pos.x, y: pos.y, color: 'cyan' });
+                        this.debugIntercepts.push({ kind: 'point', x: adjustedPos.x, y: adjustedPos.y, color: 'yellow' });
+                        this.debugIntercepts.push({ kind: 'line', x1: tower.x, y1: tower.y, x2: adjustedPos.x, y2: adjustedPos.y, color: 'gray' });
+                    }
 
                     if (adjustedPos.y > this.targetArea.top && adjustedPos.y < this.targetArea.bottom) {
                         if (tower.isReady()) {
@@ -569,6 +624,27 @@ export class Game {
         // Draw particle system (only if enabled)
         if (this.settingsPanel.getSettings().particleEffects) {
             this.particleSystem.draw(this.ctx);
+        }
+
+        // Debug intercept overlay
+        if (this.settingsPanel.getSettings().debugIntercept && this.debugIntercepts && this.debugIntercepts.length > 0) {
+            for (const marker of this.debugIntercepts) {
+                if (marker.kind === 'point') {
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = marker.color || 'white';
+                    this.ctx.fillStyle = 'transparent';
+                    this.ctx.arc(marker.x, marker.y, 4, 0, Math.PI * 2, false);
+                    this.ctx.stroke();
+                } else if (marker.kind === 'line') {
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = marker.color || 'white';
+                    this.ctx.moveTo(marker.x1, marker.y1);
+                    this.ctx.lineTo(marker.x2, marker.y2);
+                    this.ctx.stroke();
+                }
+            }
+            // Clear markers after drawing so they are per-frame
+            this.debugIntercepts = [];
         }
 
         // Update UI

@@ -11,7 +11,8 @@ export const GAME_CONFIG = {
 export const PHYSICS_CONFIG = {
     ASTEROID_SPEED: 10,
     ASTEROID_SPEED_MAX: 60,
-    MISSILE_SPEED: 50
+    MISSILE_SPEED: 50,
+    EXPLOSION_LEAD_DISTANCE: 80
 };
 
 export const ENTITY_CONFIG = {

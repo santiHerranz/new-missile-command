@@ -28,26 +28,27 @@ export function intercept(src, dst, v) {
     const tvx = dst.vx;
     const tvy = dst.vy;
 
-    // Get quadratic equation components
-    const a = tvx * tvx + tvy * tvy - v * v;
+    // Quadratic coefficients for ||r + vt * t||^2 = (v * t)^2
+    // a t^2 + b t + c = 0
+    const a = (tvx * tvx + tvy * tvy) - v * v;
     const b = 2 * (tvx * tx + tvy * ty);
     const c = tx * tx + ty * ty;
 
-    // Solve quadratic
-    const ts = quad(a, b, c);
+    // Solve using a numerically stable quadratic solver
+    const ts = solveQuadraticStable(a, b, c);
 
-    // Find smallest positive solution
+    // Choose the smallest positive time
     let sol = null;
     if (ts) {
-        const t0 = ts[0];
-        const t1 = ts[1];
-        let t = Math.min(t0, t1);
-        if (t < 0) t = Math.max(t0, t1);
+        let [t0, t1] = ts;
+        // Ensure t0 <= t1
+        if (t0 > t1) {
+            const tmp = t0; t0 = t1; t1 = tmp;
+        }
+        let t = t0;
+        if (t <= 0) t = t1;
         if (t > 0) {
-            sol = {
-                x: dst.x + dst.vx * t,
-                y: dst.y + dst.vy * t
-            };
+            sol = { x: dst.x + tvx * t, y: dst.y + tvy * t };
         }
     }
 
@@ -61,21 +62,32 @@ export function intercept(src, dst, v) {
  * @param {number} c - Coefficient c
  * @returns {Array|null} Solutions array or null
  */
-function quad(a, b, c) {
-    let sol = null;
-    if (Math.abs(a) < 1e-6) {
-        if (Math.abs(b) < 1e-6) {
-            sol = Math.abs(c) < 1e-6 ? [0, 0] : null;
-        } else {
-            sol = [-c / b, -c / b];
+function solveQuadraticStable(a, b, c) {
+    const EPS = 1e-9;
+    // Handle near-linear case: a ~ 0 -> bt + c = 0
+    if (Math.abs(a) < EPS) {
+        if (Math.abs(b) < EPS) {
+            // Degenerate: c ~ 0 -> infinite solutions, treat as t=0
+            return Math.abs(c) < EPS ? [0, 0] : null;
         }
-    } else {
-        const disc = b * b - 4 * a * c;
-        if (disc >= 0) {
-            const sqrtDisc = Math.sqrt(disc);
-            const twoA = 2 * a;
-            sol = [(-b - sqrtDisc) / twoA, (-b + sqrtDisc) / twoA];
-        }
+        const t = -c / b;
+        return [t, t];
     }
-    return sol;
+
+    let disc = b * b - 4 * a * c;
+    // Clamp tiny negative discriminants to zero due to FP error
+    if (disc < 0 && disc > -EPS) disc = 0;
+    if (disc < 0) return null;
+
+    const sqrtDisc = Math.sqrt(disc);
+    // Use stable form to compute roots
+    const q = -0.5 * (b + Math.sign(b || 1) * sqrtDisc);
+    // If q is 0, fall back to symmetric formula
+    if (q === 0) {
+        const twoA = 2 * a;
+        return [(-b - sqrtDisc) / twoA, (-b + sqrtDisc) / twoA];
+    }
+    const t0 = q / a;
+    const t1 = c / q;
+    return [t0, t1];
 }

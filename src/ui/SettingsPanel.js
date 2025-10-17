@@ -88,6 +88,12 @@ export class SettingsPanel {
                         <input type="checkbox" id="particleEffects" class="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded">
                     </div>
 
+                    <!-- Debug Intercept Overlay -->
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-medium">Debug Intercept Overlay</label>
+                        <input type="checkbox" id="debugIntercept" class="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 rounded">
+                    </div>
+
                     <!-- Auto Mode -->
                     <div class="flex items-center justify-between">
                         <label class="text-sm font-medium">Start in Auto Mode</label>
@@ -145,12 +151,14 @@ export class SettingsPanel {
         const soundEnabled = this.panel.querySelector('#soundEnabled');
         const showFPS = this.panel.querySelector('#showFPS');
         const particleEffects = this.panel.querySelector('#particleEffects');
+        const debugIntercept = this.panel.querySelector('#debugIntercept');
         const autoMode = this.panel.querySelector('#autoMode');
 
         difficulty.value = this.settings.difficulty;
         soundEnabled.checked = this.settings.soundEnabled;
         showFPS.checked = this.settings.showFPS;
         particleEffects.checked = this.settings.particleEffects;
+        debugIntercept.checked = this.settings.debugIntercept;
         autoMode.checked = this.settings.autoMode;
     }
 
@@ -162,6 +170,7 @@ export class SettingsPanel {
         const soundEnabled = this.panel.querySelector('#soundEnabled').checked;
         const showFPS = this.panel.querySelector('#showFPS').checked;
         const particleEffects = this.panel.querySelector('#particleEffects').checked;
+        const debugIntercept = this.panel.querySelector('#debugIntercept').checked;
         const autoMode = this.panel.querySelector('#autoMode').checked;
 
         this.settings = {
@@ -169,6 +178,7 @@ export class SettingsPanel {
             soundEnabled,
             showFPS,
             particleEffects,
+            debugIntercept,
             autoMode
         };
 
