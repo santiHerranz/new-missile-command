@@ -1,0 +1,35 @@
+/**
+ * Game configuration constants
+ */
+export const GAME_CONFIG = {
+    VERSION: 0.2,
+    FPS: 60/500, // 60/1000
+    CADENCE_TIME: 3,
+    SCORE_BASE: 25
+};
+
+export const PHYSICS_CONFIG = {
+    ASTEROID_SPEED: 10,
+    ASTEROID_SPEED_MAX: 60,
+    MISSILE_SPEED: 50
+};
+
+export const ENTITY_CONFIG = {
+    ASTEROID_RADIUS: 5,
+    MISSILE_RADIUS: 3,
+    CITY_RADIUS: 20,
+    TOWER_RADIUS: 10,
+    EXPLOSION_POWER: 60,
+    EXPLOSION_CITY_POWER: 100,
+    EXPLOSION_LIVE: 1000,
+    MISSILE_LIVE: 100,
+    CITY_LIVE: 100,
+    TOWER_MAX_LOAD: 100
+};
+
+export const UI_CONFIG = {
+    TARGET_AREA_TOP_RATIO: 2/8,
+    TARGET_AREA_BOTTOM_RATIO: 5/8,
+    GROUND_HEIGHT_RATIO: 9/10,
+    GROUND_THICKNESS: 5
+};
